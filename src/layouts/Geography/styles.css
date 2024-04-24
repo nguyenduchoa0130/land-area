@@ -1,0 +1,14 @@
+.ant-form-item-label label {
+  color: #fff !important;
+}
+
+.btn-submit {
+  margin-bottom: 0 !important;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.btn-submit button {
+  min-width: 120px;
+}
