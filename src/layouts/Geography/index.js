@@ -1,17 +1,20 @@
-import { Form, Row, Col, Select, Button } from 'antd';
-import React, { useEffect, useState } from 'react';
+import { Button, Col, Form, Row, Select } from 'antd';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import './styles.css';
+import { NavLink } from 'react-router-dom';
 import LocationService from '../../services/location';
+import './styles.css';
 
 const Geography = () => {
     const [provinces, setProvinces] = useState([]);
     const [cities, setCities] = useState([]);
     const [wards, setWards] = useState([]);
-    const { control, handleSubmit, watch, setValue } = useForm({
-        province: '',
-        city: '',
-        ward: '',
+    const { control, handleSubmit, setValue, formState } = useForm({
+        defaultValues: {
+            province: null,
+            city: null,
+            ward: null,
+        },
     });
 
     const getProvinces = async () => {
@@ -24,10 +27,6 @@ const Geography = () => {
     };
 
     const getCities = async (provinceId) => {
-        if (!provinceId) {
-            setCities([]);
-            return;
-        }
         try {
             const cities = await LocationService.getDistrictsOrCities(provinceId);
             setCities(cities);
@@ -37,16 +36,41 @@ const Geography = () => {
     };
 
     const getWards = async (cityId) => {
-        if (!cityId) {
-            setWards([]);
-            return;
-        }
         try {
             const wards = await LocationService.getWardsOrCommunes(cityId);
             setWards(wards);
         } catch (error) {
             alert(error.message);
         }
+    };
+
+    const handleFieldChange = (field, value) => {
+        switch (field) {
+            case 'province': {
+                setValue('city', null);
+                setValue('ward', null);
+                setValue('province', value);
+                getCities(value);
+                break;
+            }
+            case 'city': {
+                setValue('ward', null);
+                setValue('city', value);
+                getWards(value);
+                break;
+            }
+            case 'ward': {
+                setValue('ward', value);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    };
+
+    const handleFindRegionalPlanning = (formValue) => {
+        console.log('Form Value', formValue);
     };
 
     useEffect(() => {
@@ -57,13 +81,14 @@ const Geography = () => {
         <div className='content'>
             <h1>Find Regional Planning</h1>
             <hr style={{ backgroundColor: '#fff' }} />
-            <Form layout='vertical'>
+            <Form layout='vertical' onFinish={handleSubmit(handleFindRegionalPlanning)}>
                 <Row gutter={16}>
                     <Col span={6}>
                         <Form.Item label='Province/City'>
                             <Controller
                                 name='province'
                                 control={control}
+                                rules={{ required: true }}
                                 render={({ field }) => (
                                     <Select
                                         {...field}
@@ -71,7 +96,13 @@ const Geography = () => {
                                         showSearch
                                         size='large'
                                         placeholder='Select a province/city'
-                                        onChange={getCities}
+                                        onChange={(value) => handleFieldChange('province', value)}
+                                        optionFilterProp='children'
+                                        filterOption={(input, option) => {
+                                            return option.children
+                                                .toLowerCase()
+                                                .includes(input.toLowerCase());
+                                        }}
                                     >
                                         {provinces.map((province) => (
                                             <Select.Option
@@ -91,13 +122,21 @@ const Geography = () => {
                             <Controller
                                 name='city'
                                 control={control}
+                                rules={{ required: true }}
                                 render={({ field }) => (
                                     <Select
                                         {...field}
                                         allowClear
                                         size='large'
+                                        showSearch
                                         placeholder='Select a city/district'
-                                        onChange={getWards}
+                                        onChange={(value) => handleFieldChange('city', value)}
+                                        optionFilterProp='children'
+                                        filterOption={(input, option) => {
+                                            return option.children
+                                                .toLowerCase()
+                                                .includes(input.toLowerCase());
+                                        }}
                                     >
                                         {cities.map((city) => (
                                             <Select.Option key={city.id} value={city.idDistrict}>
@@ -114,12 +153,21 @@ const Geography = () => {
                             <Controller
                                 name='ward'
                                 control={control}
+                                rules={{ required: true }}
                                 render={({ field }) => (
                                     <Select
                                         {...field}
                                         allowClear
+                                        showSearch
                                         size='large'
                                         placeholder='Select a ward/commune'
+                                        onChange={(value) => handleFieldChange('ward', value)}
+                                        optionFilterProp='children'
+                                        filterOption={(input, option) => {
+                                            return option.children
+                                                .toLowerCase()
+                                                .includes(input.toLowerCase());
+                                        }}
                                     >
                                         {wards.map((ward) => (
                                             <Select.Option key={ward.id} value={ward.idCommune}>
@@ -133,13 +181,34 @@ const Geography = () => {
                     </Col>
                     <Col span={6}>
                         <Form.Item className='btn-submit'>
-                            <Button type='primary' htmlType='submit' size='large'>
+                            <Button
+                                type='primary'
+                                htmlType='submit'
+                                size='large'
+                                disabled={!formState.isValid}
+                            >
                                 Find
                             </Button>
                         </Form.Item>
                     </Col>
                 </Row>
             </Form>
+            <br />
+            {formState.isSubmitted && (
+                <div className='image'>
+                    <img
+                        alt='Region'
+                        width={'800'}
+                        height={'800'}
+                        src={require(`assets/img/region-${Math.floor(Math.random() * 2) + 1}.jpg`)}
+                    />
+                    <NavLink to='/'>
+                        <Button type='primary' size='large'>
+                            Inspect Region
+                        </Button>
+                    </NavLink>
+                </div>
+            )}
         </div>
     );
 };
